@@ -1,0 +1,284 @@
+[
+  {
+    "applicant": {
+      "first_name": "Ahmed",
+      "last_name": "Al Mansouri",
+      "emirates_id": "784-1985-1234567-1",
+      "phone": "+971-50-123-4567",
+      "email": "ahmed.almansouri@email.com",
+      "date_of_birth": "1985-03-15",
+      "nationality": "UAE",
+      "address": "Apartment 205, Al Noor Building, Dubai Marina, Dubai",
+      "family_size": 4,
+      "application_type": "financial_support"
+    },
+    "financial_info": {
+      "monthly_income": 2800,
+      "employment_status": "employed",
+      "employer_name": "Emirates Trading Company",
+      "employment_duration_months": 24,
+      "bank_balance": 1200,
+      "total_assets": 15000,
+      "total_liabilities": 8000,
+      "dependents": 2,
+      "has_existing_support": false
+    },
+    "documents": [
+      {
+        "type": "emirates_id",
+        "filename": "ahmed_emirates_id.jpg",
+        "description": "Clear photo of Emirates ID front and back"
+      },
+      {
+        "type": "bank_statement",
+        "filename": "ahmed_bank_statement_march2024.pdf",
+        "description": "3-month bank statement showing salary deposits"
+      },
+      {
+        "type": "resume",
+        "filename": "ahmed_cv_2024.pdf",
+        "description": "Updated CV with employment history"
+      }
+    ],
+    "expected_outcome": {
+      "financial_support": "approve",
+      "amount": 1500,
+      "economic_programs": ["financial_literacy", "job_placement"]
+    }
+  },
+  {
+    "applicant": {
+      "first_name": "Fatima",
+      "last_name": "Al Zahra",
+      "emirates_id": "784-1990-2345678-2",
+      "phone": "+971-55-234-5678",
+      "email": "fatima.alzahra@email.com",
+      "date_of_birth": "1990-07-22",
+      "nationality": "UAE",
+      "address": "Villa 12, Al Salam Street, Sharjah",
+      "family_size": 3,
+      "application_type": "economic_enablement"
+    },
+    "financial_info": {
+      "monthly_income": 0,
+      "employment_status": "unemployed",
+      "employer_name": null,
+      "employment_duration_months": 0,
+      "bank_balance": 800,
+      "total_assets": 5000,
+      "total_liabilities": 2000,
+      "dependents": 1,
+      "has_existing_support": false
+    },
+    "documents": [
+      {
+        "type": "emirates_id",
+        "filename": "fatima_emirates_id.jpg",
+        "description": "Emirates ID scan"
+      },
+      {
+        "type": "bank_statement",
+        "filename": "fatima_bank_statement.pdf",
+        "description": "Bank statement showing minimal activity"
+      },
+      {
+        "type": "resume",
+        "filename": "fatima_resume.docx",
+        "description": "Resume with university degree in business"
+      }
+    ],
+    "expected_outcome": {
+      "financial_support": "approve",
+      "amount": 2000,
+      "economic_programs": ["skills_development", "entrepreneurship_support", "job_placement"]
+    }
+  },
+  {
+    "applicant": {
+      "first_name": "Mohammed",
+      "last_name": "Al Hashimi",
+      "emirates_id": "784-1978-3456789-3",
+      "phone": "+971-52-345-6789",
+      "email": "mohammed.alhashimi@email.com",
+      "date_of_birth": "1978-12-10",
+      "nationality": "UAE",
+      "address": "House 45, Al Karama District, Dubai",
+      "family_size": 6,
+      "application_type": "financial_support"
+    },
+    "financial_info": {
+      "monthly_income": 3200,
+      "employment_status": "employed",
+      "employer_name": "Dubai Municipality",
+      "employment_duration_months": 60,
+      "bank_balance": 2500,
+      "total_assets": 25000,
+      "total_liabilities": 15000,
+      "dependents": 4,
+      "has_existing_support": false
+    },
+    "documents": [
+      {
+        "type": "emirates_id",
+        "filename": "mohammed_emirates_id.png",
+        "description": "High-quality Emirates ID scan"
+      },
+      {
+        "type": "bank_statement",
+        "filename": "mohammed_bank_statements.pdf",
+        "description": "6-month bank statement history"
+      },
+      {
+        "type": "assets_liabilities",
+        "filename": "mohammed_financial_summary.xlsx",
+        "description": "Detailed financial assets and liabilities"
+      }
+    ],
+    "expected_outcome": {
+      "financial_support": "approve",
+      "amount": 1800,
+      "economic_programs": ["financial_literacy"]
+    }
+  },
+  {
+    "applicant": {
+      "first_name": "Aisha",
+      "last_name": "Al Suwaidi",
+      "emirates_id": "784-1995-4567890-4",
+      "phone": "+971-56-456-7890",
+      "email": "aisha.alsuwaidi@email.com",
+      "date_of_birth": "1995-05-18",
+      "nationality": "UAE",
+      "address": "Apartment 102, Green Tower, Abu Dhabi",
+      "family_size": 2,
+      "application_type": "economic_enablement"
+    },
+    "financial_info": {
+      "monthly_income": 1800,
+      "employment_status": "part_time",
+      "employer_name": "Local Retail Store",
+      "employment_duration_months": 8,
+      "bank_balance": 600,
+      "total_assets": 3000,
+      "total_liabilities": 1500,
+      "dependents": 0,
+      "has_existing_support": false
+    },
+    "documents": [
+      {
+        "type": "emirates_id",
+        "filename": "aisha_emirates_id.jpg",
+        "description": "Emirates ID photo"
+      },
+      {
+        "type": "bank_statement",
+        "filename": "aisha_bank_statement.pdf",
+        "description": "Recent bank statement"
+      },
+      {
+        "type": "resume",
+        "filename": "aisha_cv.pdf",
+        "description": "CV with IT skills and certificates"
+      }
+    ],
+    "expected_outcome": {
+      "financial_support": "approve",
+      "amount": 1200,
+      "economic_programs": ["skills_development", "job_placement"]
+    }
+  },
+  {
+    "applicant": {
+      "first_name": "Omar",
+      "last_name": "Al Maktoum",
+      "emirates_id": "784-1988-5678901-5",
+      "phone": "+971-50-567-8901",
+      "email": "omar.almaktoum@email.com",
+      "date_of_birth": "1988-09-25",
+      "nationality": "UAE",
+      "address": "Villa 88, Al Wasl Road, Dubai",
+      "family_size": 1,
+      "application_type": "financial_support"
+    },
+    "financial_info": {
+      "monthly_income": 5500,
+      "employment_status": "employed",
+      "employer_name": "Dubai International Financial Centre",
+      "employment_duration_months": 36,
+      "bank_balance": 12000,
+      "total_assets": 150000,
+      "total_liabilities": 45000,
+      "dependents": 0,
+      "has_existing_support": false
+    },
+    "documents": [
+      {
+        "type": "emirates_id",
+        "filename": "omar_emirates_id.jpg",
+        "description": "Emirates ID scan"
+      },
+      {
+        "type": "bank_statement",
+        "filename": "omar_bank_statements.pdf",
+        "description": "Bank statements showing high income"
+      },
+      {
+        "type": "credit_report",
+        "filename": "omar_credit_report.pdf",
+        "description": "Credit report with good score"
+      }
+    ],
+    "expected_outcome": {
+      "financial_support": "decline",
+      "amount": 0,
+      "economic_programs": []
+    }
+  },
+  {
+    "applicant": {
+      "first_name": "Maryam",
+      "last_name": "Al Qasimi",
+      "emirates_id": "784-1992-6789012-6",
+      "phone": "+971-55-678-9012",
+      "email": "maryam.alqasimi@email.com",
+      "date_of_birth": "1992-11-30",
+      "nationality": "UAE",
+      "address": "Apartment 304, Corniche Towers, Sharjah",
+      "family_size": 5,
+      "application_type": "financial_support"
+    },
+    "financial_info": {
+      "monthly_income": 2200,
+      "employment_status": "employed",
+      "employer_name": "Sharjah Education Council",
+      "employment_duration_months": 18,
+      "bank_balance": 900,
+      "total_assets": 8000,
+      "total_liabilities": 5000,
+      "dependents": 3,
+      "has_existing_support": true
+    },
+    "documents": [
+      {
+        "type": "emirates_id",
+        "filename": "maryam_emirates_id.png",
+        "description": "Emirates ID with some wear"
+      },
+      {
+        "type": "bank_statement",
+        "filename": "maryam_bank_statement.pdf",
+        "description": "Bank statement with irregular deposits"
+      },
+      {
+        "type": "resume",
+        "filename": "maryam_teaching_cv.pdf",
+        "description": "Teaching qualification and experience"
+      }
+    ],
+    "expected_outcome": {
+      "financial_support": "review_required",
+      "amount": 1000,
+      "economic_programs": ["financial_literacy"]
+    }
+  }
+]

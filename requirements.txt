@@ -1,0 +1,48 @@
+# Core Framework - TESTED AND WORKING
+fastapi==0.116.2
+uvicorn==0.30.6
+streamlit==1.49.1
+python-multipart==0.0.6
+requests==2.32.3
+
+# AI/ML and Agent Framework
+langchain==0.3.27
+langgraph==0.6.7
+ollama==0.5.4
+sentence-transformers==2.2.2
+
+# Document Processing and OCR - VERIFIED WORKING
+unstructured[all-docs]==0.16.8
+pytesseract==0.3.13
+Pillow==10.4.0
+opencv-python==4.10.0.84
+pdf2image==1.17.0
+pdfminer.six==20240706
+pillow-heif==0.21.0
+pi-heif==0.23.0
+
+# Data Processing
+pandas==2.2.3
+numpy==1.26.4
+openpyxl==3.1.5
+pydantic==2.10.1
+email-validator==2.2.0
+
+# Database Connectors (Future use)
+psycopg2-binary==2.9.10
+sqlalchemy==2.0.43
+redis==5.2.1
+
+# Utilities - CONFIRMED WORKING
+python-dotenv==1.0.1
+httpx==0.27.2
+aiofiles==24.1.0
+
+# Development Tools
+pytest==8.3.4
+black==24.10.0
+flake8==7.1.1
+
+# Additional Dependencies for Current System
+typing-extensions==4.12.2
+pydantic-core==2.27.1
