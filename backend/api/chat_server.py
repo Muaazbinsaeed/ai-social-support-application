@@ -5,11 +5,19 @@ import logging
 from datetime import datetime
 import httpx
 import json
+import os
 
-from backend.config import settings
+# Simple settings without complex imports
+class SimpleSettings:
+    def __init__(self):
+        self.ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+        self.ollama_model = os.getenv("OLLAMA_MODEL", "qwen2:1.5b")
+        self.api_host = os.getenv("API_HOST", "0.0.0.0")
+
+settings = SimpleSettings()
 
 # Setup logging
-logging.basicConfig(level=getattr(logging, settings.log_level))
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
@@ -36,7 +44,7 @@ class SimpleLLMService:
     def __init__(self):
         self.base_url = settings.ollama_host
         self.model = settings.ollama_model
-        self.timeout = 5.0
+        self.timeout = 15.0  # Increased timeout for better reliability
 
         self.system_prompt = """You are a UAE Social Support Assistant. Give short, helpful answers.
 
@@ -52,15 +60,58 @@ Quick facts:
 
 Keep responses under 50 words. Use emojis and be friendly."""
 
+    def _is_programming_request(self, prompt: str) -> bool:
+        """Detect if the request is about programming/coding"""
+        prompt_lower = prompt.lower()
+
+        # Programming keywords and phrases
+        programming_keywords = [
+            "write code", "python code", "write python", "python print", "print code",
+            "javascript", "html", "css", "sql", "java", "c++", "c#", ".net",
+            "programming", "coding", "script", "function", "variable", "loop",
+            "array", "list", "dictionary", "api call", "database query",
+            "for loop", "while loop", "if statement", "else statement",
+            "import", "from ", "def ", "class ", "return ", "print(",
+            "console.log", "alert(", "document.", "window.", "var ", "let ",
+            "const ", "function(", "=>", "lambda", "exec", "eval"
+        ]
+
+        # Programming file extensions
+        file_extensions = [
+            ".py", ".js", ".html", ".css", ".sql", ".java", ".cpp", ".cs",
+            ".php", ".rb", ".go", ".rs", ".ts", ".jsx", ".tsx", ".vue"
+        ]
+
+        # Check for programming keywords
+        for keyword in programming_keywords:
+            if keyword in prompt_lower:
+                return True
+
+        # Check for file extensions
+        for ext in file_extensions:
+            if ext in prompt_lower:
+                return True
+
+        # Check for code-like patterns
+        if any(pattern in prompt_lower for pattern in ["write me", "create a", "build a", "make a"]):
+            if any(code_word in prompt_lower for code_word in ["code", "script", "program", "function", "app", "website"]):
+                return True
+
+        return False
+
     async def get_response(self, prompt: str, context: Optional[Dict] = None) -> str:
         """Get response from Ollama"""
         try:
-            # Quick responses for very simple greetings to avoid LLM delay
+            # Quick responses for very simple greetings only
             prompt_lower = prompt.lower().strip()
             if prompt_lower in ["hi", "hello", "hey"]:
                 return "👋 Hello! I'm your AI Social Support Assistant. I can help with applications, documents, and eligibility. What would you like to know?"
-            elif "how can you help" in prompt_lower or "what can you do" in prompt_lower:
-                return "I can help with:\n• ✅ Application eligibility & process\n• 📄 Document requirements\n• 💰 Financial support programs\n• ⚡ Processing status\n\nWhat would you like to know?"
+
+            # Check if this is a programming request
+            if self._is_programming_request(prompt):
+                return "🚫 I'm specifically designed to help with UAE social support applications and services. I can assist with application processes, document requirements, eligibility criteria, and financial support programs. How can I help you with your social support needs?"
+
+            # For more complex questions, always use LLM (removed instant responses for "what can you do" etc.)
 
             # Add context if available
             enhanced_prompt = prompt
@@ -96,7 +147,7 @@ Keep responses under 50 words. Use emojis and be friendly."""
                     return self._fallback_response(prompt)
 
         except Exception as e:
-            logger.error(f"Ollama error: {str(e)}")
+            logger.error(f"Ollama error: {str(e)}", exc_info=True)
             return self._fallback_response(prompt)
 
     def _fallback_response(self, prompt: str) -> str:
@@ -198,8 +249,8 @@ async def chat_health():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        "backend.api.chat_server:app",
+        app,
         host=settings.api_host,
         port=8001,  # Different port to avoid conflicts
-        reload=True
+        reload=False
     )

@@ -17,8 +17,10 @@ class Settings(BaseSettings):
 
     # Application Configuration
     secret_key: str = "dev-secret-key-change-in-production"
+    jwt_secret_key: str = "jwt-secret-key-change-in-production"
     api_host: str = "0.0.0.0"
     api_port: int = 8000
+    auth_port: int = 8002
     frontend_port: int = 8501
 
     # Langfuse Configuration
