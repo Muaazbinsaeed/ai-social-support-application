@@ -41,60 +41,51 @@ def display_chat_messages():
 
 def submit_application(applicant_data: Dict[str, Any]) -> bool:
     """Submit application to backend"""
-    # First, save form data locally regardless of backend status
-    st.session_state.form_data = applicant_data
-    
     try:
-        # Check if backend is available
-        try:
-            # Try a quick health check with short timeout
-            health_response = requests.get(f"{API_BASE_URL}/health", timeout=1)
-            backend_available = health_response.status_code == 200
-        except requests.exceptions.RequestException:
-            backend_available = False
-            st.warning("⚠️ Backend server appears to be offline.")
-            st.info("💡 Your application data has been saved locally. Please try submitting again when the backend is available.")
-            return False
-            
-        # If backend is available, try to submit
-        if backend_available:
-            try:
-                headers = get_auth_headers()
-                response = requests.post(
-                    f"{API_BASE_URL}/applications/submit",
-                    json=applicant_data,
-                    headers=headers,
-                    timeout=5  # Add timeout to prevent long waits
-                )
-        
-                if response.status_code == 200:
-                    result = response.json()
-                    st.session_state.application_id = result["application_id"]
-                    add_chat_message("assistant", f"✅ Application submitted successfully! Application ID: {result['application_id']}")
-                    return True
-                else:
-                    st.error(f"Failed to submit application: {response.text}")
-                    st.info("💡 Your application data has been saved locally. You can try submitting again later.")
-                    return False
-            except requests.exceptions.Timeout:
-                st.warning("⚠️ Backend server is taking too long to respond.")
-                st.info("💡 Your application data has been saved locally. Please try submitting again later.")
-                return False
-            except requests.exceptions.ConnectionError:
-                st.warning("⚠️ Connection to backend server failed.")
-                st.info("💡 Your application data has been saved locally. Please try submitting again later.")
-                return False
-            except Exception as e:
-                st.error(f"Error submitting application: {str(e)}")
-                st.info("💡 Your application data has been saved locally. You can try submitting again later.")
-                return False
+        headers = get_auth_headers()
+        response = requests.post(
+            f"{API_BASE_URL}/applications/submit",
+            json=applicant_data,
+            headers=headers
+        )
+
+        if response.status_code == 200:
+            result = response.json()
+            st.session_state.application_id = result["application_id"]
+            add_chat_message("assistant", f"✅ Application submitted successfully! Application ID: {result['application_id']}")
+            return True
         else:
-            st.warning("⚠️ Backend server is not available.")
-            st.info("💡 Your application data has been saved locally. Please try submitting again when the backend is available.")
+            st.error(f"Failed to submit application: {response.text}")
             return False
+
     except Exception as e:
         st.error(f"Error submitting application: {str(e)}")
-        st.info("💡 Your application data has been saved locally. You can try submitting again later.")
+        return False
+        
+def update_application(applicant_data: Dict[str, Any]) -> bool:
+    """Update application in backend"""
+    if not st.session_state.application_id:
+        st.error("❌ No application ID available for updating")
+        return False
+        
+    try:
+        headers = get_auth_headers()
+        response = requests.put(
+            f"{API_BASE_URL}/applications/{st.session_state.application_id}/update",
+            json=applicant_data,
+            headers=headers
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            add_chat_message("assistant", f"✅ Application {st.session_state.application_id} updated successfully!")
+            return True
+        else:
+            st.error(f"Failed to update application: {response.text}")
+            return False
+            
+    except Exception as e:
+        st.error(f"Error updating application: {str(e)}")
         return False
 
 def upload_documents(files: List, document_types: List[str]) -> bool:
@@ -111,157 +102,84 @@ def upload_documents(files: List, document_types: List[str]) -> bool:
                 "content_type": file.type
             })
 
-        # Store document info in session state for persistence
-        if "document_files_info" not in st.session_state:
-            st.session_state.document_files_info = []
-        st.session_state.document_files_info = files_info
-            
-        # Check if backend is available
-        try:
-            # Try a quick health check with short timeout
-            health_response = requests.get(f"{API_BASE_URL}/health", timeout=1)
-            backend_available = health_response.status_code == 200
-        except requests.exceptions.RequestException:
-            backend_available = False
-            st.warning("⚠️ Backend server appears to be offline.")
-            st.info("💡 Your document information has been saved locally. Please try uploading again when the backend is available.")
-            
-            # Create a local summary for user feedback
+        headers = get_auth_headers()
+        response = requests.post(
+            f"{API_BASE_URL}/applications/{st.session_state.application_id}/documents/upload",
+            json=files_info,
+            headers=headers
+        )
+
+        if response.status_code == 200:
+            result = response.json()
+
+            # Create detailed upload summary
             doc_summary = []
-            for doc in files_info:
-                doc_summary.append(f"• {doc.get('filename', 'Unknown')} (saved locally)")
-            
-            summary_text = f"📄 Document information saved locally ({len(files_info)} documents):\n" + "\n".join(doc_summary)
+            for doc in result.get('uploaded_documents', []):
+                doc_summary.append(f"• {doc.get('filename', 'Unknown')}")
+
+            summary_text = f"✅ Successfully uploaded {result['total_documents']} documents:\n" + "\n".join(doc_summary)
             add_chat_message("assistant", summary_text)
+
+            # Store documents in session state for persistence across reloads
+            if 'uploaded_documents' not in st.session_state:
+                st.session_state.uploaded_documents = []
+            
+            # Add newly uploaded documents to the session state list
+            st.session_state.uploaded_documents.extend(result.get('uploaded_documents', []))
             
             # Store summary in session state for display
             st.session_state.uploaded_docs_summary = summary_text
-            
-            return False
-            
-        # If backend is available, try to upload
-        if backend_available:
-            try:
-                headers = get_auth_headers()
-                response = requests.post(
-                    f"{API_BASE_URL}/applications/{st.session_state.application_id}/documents/upload",
-                    json=files_info,
-                    headers=headers,
-                    timeout=10  # Allow longer timeout for document uploads
-                )
-        
-                if response.status_code == 200:
-                    result = response.json()
-        
-                    # Create detailed upload summary
-                    doc_summary = []
-                    for doc in result.get('uploaded_documents', []):
-                        doc_summary.append(f"• {doc.get('filename', 'Unknown')}")
-        
-                    summary_text = f"✅ Successfully uploaded {result['total_documents']} documents:\n" + "\n".join(doc_summary)
-                    add_chat_message("assistant", summary_text)
-        
-                    # Store summary in session state for display
-                    st.session_state.uploaded_docs_summary = summary_text
-        
-                    return True
-                else:
-                    st.error(f"Failed to upload documents: {response.text}")
-                    st.info("💡 Your document information has been saved locally. You can try uploading again later.")
-                    return False
-            except requests.exceptions.Timeout:
-                st.warning("⚠️ Backend server is taking too long to respond.")
-                st.info("💡 Your document information has been saved locally. Please try uploading again later.")
-                return False
-            except requests.exceptions.ConnectionError:
-                st.warning("⚠️ Connection to backend server failed.")
-                st.info("💡 Your document information has been saved locally. Please try uploading again later.")
-                return False
-            except Exception as e:
-                st.error(f"Error uploading documents: {str(e)}")
-                st.info("💡 Your document information has been saved locally. You can try uploading again later.")
-                return False
+
+            return True
         else:
-            st.warning("⚠️ Backend server is not available.")
-            st.info("💡 Your document information has been saved locally. Please try uploading again when the backend is available.")
+            st.error(f"Failed to upload documents: {response.text}")
             return False
 
     except Exception as e:
         st.error(f"Error uploading documents: {str(e)}")
-        st.info("💡 Document information could not be saved. Please try again later.")
         return False
 
 def start_processing() -> bool:
     """Start application processing"""
     try:
-        # Check if backend is available
-        try:
-            # Try a quick health check with short timeout
-            health_response = requests.get(f"{API_BASE_URL}/health", timeout=1)
-            backend_available = health_response.status_code == 200
-        except requests.exceptions.RequestException:
-            backend_available = False
-            st.warning("⚠️ Backend server appears to be offline.")
-            st.info("💡 Processing cannot start while the backend is unavailable. Please try again later.")
+        headers = get_auth_headers()
+        response = requests.post(
+            f"{API_BASE_URL}/applications/{st.session_state.application_id}/process",
+            headers=headers
+        )
+
+        if response.status_code == 200:
+            result = response.json()
+            add_chat_message("assistant", "🔄 Application processing started! This may take a few minutes.")
+            return True
+        elif response.status_code == 404:
+            st.error("❌ Application not found. Please submit a new application.")
+            st.info("🔄 **To fix this issue:** Go to the Application Form tab and submit your application again.")
+            # Reset application state
+            if st.button("🔄 Reset Application State"):
+                st.session_state.application_submitted = False
+                st.session_state.application_id = None
+                st.session_state.documents_uploaded = False
+                st.session_state.processing_started = False
+                st.rerun()
             return False
-            
-        # If backend is available, try to start processing
-        if backend_available:
-            try:
-                headers = get_auth_headers()
-                response = requests.post(
-                    f"{API_BASE_URL}/applications/{st.session_state.application_id}/process",
-                    headers=headers,
-                    timeout=10  # Allow longer timeout for processing
-                )
-        
-                if response.status_code == 200:
-                    result = response.json()
-                    add_chat_message("assistant", "🔄 Application processing started! This may take a few minutes.")
-                    return True
-                elif response.status_code == 404:
-                    st.error("❌ Application not found. Please submit a new application.")
-                    st.info("🔄 **To fix this issue:** Go to the Application Form tab and submit your application again.")
-                    # Reset application state
-                    if st.button("🔄 Reset Application State"):
-                        st.session_state.application_submitted = False
-                        st.session_state.application_id = None
-                        st.session_state.documents_uploaded = False
-                        st.session_state.processing_started = False
-                        st.rerun()
-                    return False
-                elif response.status_code == 400:
-                    error_detail = response.json().get("detail", "Bad request")
-                    st.error(f"❌ Processing error: {error_detail}")
-                    if "documents" in error_detail.lower():
-                        st.info("💡 **Tip:** Make sure you have uploaded at least one document before starting processing.")
-                    return False
-                else:
-                    try:
-                        error_data = response.json()
-                        error_msg = error_data.get("detail", "Unknown error")
-                        # Log the full error for debugging
-                        st.error(f"❌ Failed to start processing: {error_msg}")
-                        st.error(f"🔍 Debug info: HTTP {response.status_code}, Application ID: {st.session_state.application_id}")
-                    except Exception as parse_error:
-                        st.error(f"❌ Failed to start processing (HTTP {response.status_code})")
-                        st.error(f"🔍 Response: {response.text}")
-                        st.error(f"🔍 Parse error: {str(parse_error)}")
-                    return False
-            except requests.exceptions.Timeout:
-                st.warning("⚠️ Backend server is taking too long to respond.")
-                st.info("💡 Please try starting the processing again later.")
-                return False
-            except requests.exceptions.ConnectionError:
-                st.warning("⚠️ Connection to backend server failed.")
-                st.info("💡 Please try starting the processing again later.")
-                return False
-            except Exception as e:
-                st.error(f"Error starting processing: {str(e)}")
-                return False
+        elif response.status_code == 400:
+            error_detail = response.json().get("detail", "Bad request")
+            st.error(f"❌ Processing error: {error_detail}")
+            if "documents" in error_detail.lower():
+                st.info("💡 **Tip:** Make sure you have uploaded at least one document before starting processing.")
+            return False
         else:
-            st.warning("⚠️ Backend server is not available.")
-            st.info("💡 Processing cannot start while the backend is unavailable. Please try again later.")
+            try:
+                error_data = response.json()
+                error_msg = error_data.get("detail", "Unknown error")
+                # Log the full error for debugging
+                st.error(f"❌ Failed to start processing: {error_msg}")
+                st.error(f"🔍 Debug info: HTTP {response.status_code}, Application ID: {st.session_state.application_id}")
+            except Exception as parse_error:
+                st.error(f"❌ Failed to start processing (HTTP {response.status_code})")
+                st.error(f"🔍 Response: {response.text}")
+                st.error(f"🔍 Parse error: {str(parse_error)}")
             return False
 
     except Exception as e:
@@ -271,82 +189,40 @@ def start_processing() -> bool:
 def get_processing_status() -> Dict[str, Any]:
     """Get current processing status"""
     try:
-        # Check if backend is available
-        try:
-            # Try a quick health check with short timeout
-            health_response = requests.get(f"{API_BASE_URL}/health", timeout=1)
-            backend_available = health_response.status_code == 200
-        except requests.exceptions.RequestException:
-            backend_available = False
-            return {"status": "backend_offline", "error": "Backend server is offline", "progress": 0}
-            
-        # If backend is available, try to get status
-        if backend_available:
-            try:
-                headers = get_auth_headers()
-                response = requests.get(
-                    f"{API_BASE_URL}/applications/{st.session_state.application_id}/status",
-                    headers=headers,
-                    timeout=3  # Add timeout to prevent long waits
-                )
-        
-                if response.status_code == 200:
-                    return response.json()
-                elif response.status_code == 404:
-                    return {"status": "not_found", "error": "Application not found"}
-                else:
-                    return {"status": "unknown", "error": response.text}
-            except requests.exceptions.Timeout:
-                return {"status": "timeout", "error": "Backend server is taking too long to respond", "progress": 0}
-            except requests.exceptions.ConnectionError:
-                return {"status": "connection_error", "error": "Connection to backend server failed", "progress": 0}
-            except Exception as e:
-                return {"status": "error", "error": str(e), "progress": 0}
+        headers = get_auth_headers()
+        response = requests.get(
+            f"{API_BASE_URL}/applications/{st.session_state.application_id}/status",
+            headers=headers
+        )
+
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 404:
+            return {"status": "not_found", "error": "Application not found"}
         else:
-            return {"status": "backend_unavailable", "error": "Backend server is not available", "progress": 0}
+            return {"status": "unknown", "error": response.text}
 
     except Exception as e:
-        return {"status": "error", "error": str(e), "progress": 0}
+        return {"status": "error", "error": str(e)}
 
 def get_application_details() -> Dict[str, Any]:
     """Get detailed application information"""
     try:
-        # Check if backend is available
-        try:
-            # Try a quick health check with short timeout
-            health_response = requests.get(f"{API_BASE_URL}/health", timeout=1)
-            backend_available = health_response.status_code == 200
-        except requests.exceptions.RequestException:
-            backend_available = False
-            return {"error": "Backend server is offline", "status": "backend_offline"}
-            
-        # If backend is available, try to get details
-        if backend_available:
-            try:
-                headers = get_auth_headers()
-                response = requests.get(
-                    f"{API_BASE_URL}/applications/{st.session_state.application_id}/details",
-                    headers=headers,
-                    timeout=3  # Add timeout to prevent long waits
-                )
-        
-                if response.status_code == 200:
-                    return response.json()
-                elif response.status_code == 404:
-                    return {"error": "Application not found", "status": "not_found"}
-                else:
-                    return {"error": response.text, "status": "api_error"}
-            except requests.exceptions.Timeout:
-                return {"error": "Backend server is taking too long to respond", "status": "timeout"}
-            except requests.exceptions.ConnectionError:
-                return {"error": "Connection to backend server failed", "status": "connection_error"}
-            except Exception as e:
-                return {"error": str(e), "status": "error"}
+        headers = get_auth_headers()
+        response = requests.get(
+            f"{API_BASE_URL}/applications/{st.session_state.application_id}/details",
+            headers=headers
+        )
+
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 404:
+            return {"error": "Application not found"}
         else:
-            return {"error": "Backend server is not available", "status": "backend_unavailable"}
+            return {"error": response.text}
 
     except Exception as e:
-        return {"error": str(e), "status": "error"}
+        return {"error": str(e)}
 
 def load_application_form_data():
     """Load and restore application form data from backend"""
@@ -355,121 +231,79 @@ def load_application_form_data():
         return False
 
     try:
-        # Check if backend is available
-        try:
-            # Try a quick health check with short timeout
-            response = requests.get(f"{API_BASE_URL}/health", timeout=1)
-            backend_available = response.status_code == 200
-        except requests.exceptions.RequestException:
-            backend_available = False
-            st.warning("⚠️ Backend server appears to be offline. Using local data if available.")
-        
-        # If backend is available, try to get application details
-        if backend_available:
-            try:
-                # Get application details from backend
-                details = get_application_details()
+        # Get application details from backend
+        details = get_application_details()
+
+        if "error" not in details:
+            # Extract applicant data from backend response
+            applicant_info = details.get("applicant", {})
+            application_info = details.get("application", {})
+
+            # Parse applicant_data - handle both authenticated (JSON string) and anonymous (dict) formats
+            applicant_data = {}
+            if application_info.get("applicant_data"):
+                if isinstance(application_info["applicant_data"], str):
+                    # Authenticated user - data stored as JSON string
+                    try:
+                        import json
+                        applicant_data = json.loads(application_info["applicant_data"])
+                    except:
+                        applicant_data = {}
+                elif isinstance(application_info["applicant_data"], dict):
+                    # Anonymous user - data stored as dict
+                    applicant_data = application_info["applicant_data"]
+
+            # Also check if the backend response has a different structure
+            # For anonymous users, check the main response structure
+            if not applicant_data and "applicant_data" in details:
+                raw_data = details["applicant_data"]
+                if isinstance(raw_data, dict):
+                    applicant_data = raw_data
+
+            # Restore form data to session state from backend
+            restored_data = {
+                "first_name": applicant_data.get("first_name", applicant_info.get("name", "").split(" ")[0] if applicant_info.get("name") else ""),
+                "last_name": applicant_data.get("last_name", " ".join(applicant_info.get("name", "").split(" ")[1:]) if applicant_info.get("name") else ""),
+                "emirates_id": applicant_data.get("emirates_id", applicant_info.get("emirates_id", "")),
+                "email": applicant_data.get("email", applicant_info.get("email", "")),
+                "phone": applicant_data.get("phone", applicant_info.get("phone", "")),
+                "date_of_birth": applicant_data.get("date_of_birth", ""),
+                "address": applicant_data.get("address", ""),
+                "family_size": applicant_data.get("family_size", 1),
+                "urgency_level": applicant_data.get("urgency_level", "normal"),
+                "application_type": applicant_data.get("application_type", application_info.get("type", "financial_support")),
+                "monthly_income": applicant_data.get("monthly_income", 0),
+                "employment_status": applicant_data.get("employment_status", "employed"),
+                "bank_balance": applicant_data.get("bank_balance", 0),
+                "has_existing_support": applicant_data.get("has_existing_support", False)
+            }
+
+            # Update session state with backend data
+            st.session_state.form_data = restored_data
+            
+            # Load document data if available
+            if "documents" in details and details["documents"]:
+                # Store documents in session state for persistence across reloads
+                st.session_state.uploaded_documents = details["documents"]
                 
-                if "error" not in details:
-                    # Extract applicant data from backend response
-                    applicant_info = details.get("applicant", {})
-                    application_info = details.get("application", {})
-    
-                    # Parse applicant_data - handle both authenticated (JSON string) and anonymous (dict) formats
-                    applicant_data = {}
-                    if application_info.get("applicant_data"):
-                        if isinstance(application_info["applicant_data"], str):
-                            # Authenticated user - data stored as JSON string
-                            try:
-                                import json
-                                applicant_data = json.loads(application_info["applicant_data"])
-                            except:
-                                applicant_data = {}
-                        elif isinstance(application_info["applicant_data"], dict):
-                            # Anonymous user - data stored as dict
-                            applicant_data = application_info["applicant_data"]
-    
-                    # Also check if the backend response has a different structure
-                    # For anonymous users, check the main response structure
-                    if not applicant_data and "applicant_data" in details:
-                        raw_data = details["applicant_data"]
-                        if isinstance(raw_data, dict):
-                            applicant_data = raw_data
+                # Set documents_uploaded flag to true
+                if len(details["documents"]) > 0:
+                    st.session_state.documents_uploaded = True
                     
-                    # For anonymous users, check directly in the applications_db
-                    if not applicant_data and details.get("application", {}).get("id"):
-                        try:
-                            app_id = details["application"]["id"]
-                            # Try to get directly from backend with short timeout
-                            response = requests.get(f"{API_BASE_URL}/applications/{app_id}/details", timeout=2)
-                            if response.status_code == 200:
-                                app_data = response.json()
-                                if app_data.get("applicant_data"):
-                                    applicant_data = app_data["applicant_data"]
-                        except:
-                            # Silently fail and continue with what we have
-                            pass
+                    # Create document summary for display
+                    doc_summary = []
+                    for doc in details["documents"]:
+                        doc_summary.append(f"• {doc.get('filename', 'Unknown')}")
                     
-                    # If we found applicant data, use it
-                    if applicant_data:
-                        # Restore form data to session state from backend
-                        restored_data = {
-                            "first_name": applicant_data.get("first_name", applicant_info.get("name", "").split(" ")[0] if applicant_info.get("name") else ""),
-                            "last_name": applicant_data.get("last_name", " ".join(applicant_info.get("name", "").split(" ")[1:]) if applicant_info.get("name") else ""),
-                            "emirates_id": applicant_data.get("emirates_id", applicant_info.get("emirates_id", "")),
-                            "email": applicant_data.get("email", applicant_info.get("email", "")),
-                            "phone": applicant_data.get("phone", applicant_info.get("phone", "")),
-                            "date_of_birth": applicant_data.get("date_of_birth", ""),
-                            "address": applicant_data.get("address", ""),
-                            "family_size": applicant_data.get("family_size", 1),
-                            "urgency_level": applicant_data.get("urgency_level", "normal"),
-                            "application_type": applicant_data.get("application_type", application_info.get("type", "financial_support")),
-                            "monthly_income": applicant_data.get("monthly_income", 0),
-                            "employment_status": applicant_data.get("employment_status", "employed"),
-                            "bank_balance": applicant_data.get("bank_balance", 0),
-                            "has_existing_support": applicant_data.get("has_existing_support", False)
-                        }
-    
-                        # Log successful data restoration
-                        print(f"Restored form data for application {st.session_state.application_id}: {restored_data}")
-                        
-                        # Update session state with backend data
-                        st.session_state.form_data = restored_data
-                        
-                        # Save to session state and URL for persistence
-                        save_session_to_url()
-    
-                        return True
-                    else:
-                        # No applicant data found but no error either
-                        st.info("ℹ️ No application data found on the server. Using local data if available.")
-                        return False
-                else:
-                    # Error in details
-                    st.warning(f"⚠️ Backend error: {details.get('error')}")
-                    # Continue with local data if available
-                    return False
-            except Exception as e:
-                st.warning(f"⚠️ Error retrieving application data: {str(e)}")
-                # Continue with local data if available
-                return False
-        
-        # If we get here, either backend is unavailable or we couldn't get data
-        # Check if we have data in session state
-        if st.session_state.form_data:
-            st.info("ℹ️ Using locally stored form data. Backend connection unavailable.")
-            # We already have form data in session state, so we're good
+                    summary_text = f"✅ Found {len(details['documents'])} documents:\n" + "\n".join(doc_summary)
+                    st.session_state.uploaded_docs_summary = summary_text
+
             return True
         else:
-            st.warning("⚠️ No form data available. Please fill out the form again.")
+            st.error(f"❌ Backend error: {details.get('error')}")
             return False
-            
     except Exception as e:
         st.error(f"❌ Error loading application data: {str(e)}")
-        # Try to use local data if available
-        if st.session_state.form_data:
-            st.info("ℹ️ Using locally stored form data due to error.")
-            return True
         return False
 
 # Main application UI
@@ -904,55 +738,18 @@ def main():
                         }
 
                         if st.session_state.form_edit_mode:
-                            # Handle application update
-                            # First, save form data locally regardless of backend status
-                            st.session_state.form_data = form_data
-                            
-                            # Check if backend is available
-                            try:
-                                # Try a quick health check with short timeout
-                                health_response = requests.get(f"{API_BASE_URL}/health", timeout=1)
-                                backend_available = health_response.status_code == 200
-                            except requests.exceptions.RequestException:
-                                backend_available = False
-                                st.warning("⚠️ Backend server appears to be offline. Your changes have been saved locally.")
+                            # Handle application update - save to both session state and backend
+                            if update_application(applicant_data):
+                                # Update session state with the form data
+                                st.session_state.form_data = form_data
                                 st.session_state.form_edit_mode = False
-                                # Save application context to URL for persistence
+                                st.success("✅ Application updated successfully!")
+                                st.info("💡 Your changes have been saved. Note: You may need to re-upload documents if there were significant changes.")
+                                # Save session context to URL for persistence
                                 save_session_to_url()
                                 st.rerun()
-                                
-                            # If backend is available, try to update
-                            if backend_available:
-                                try:
-                                    # Update application data on backend
-                                    headers = get_auth_headers()
-                                    response = requests.put(
-                                        f"{API_BASE_URL}/applications/{st.session_state.application_id}/update",
-                                        json=applicant_data,
-                                        headers=headers,
-                                        timeout=3  # Add timeout to prevent long waits
-                                    )
-                                    
-                                    if response.status_code == 200:
-                                        result = response.json()
-                                        st.session_state.form_edit_mode = False
-                                        st.success("✅ Application updated successfully!")
-                                        st.info("💡 Your changes have been saved. Note: You may need to re-upload documents if there were significant changes.")
-                                        # Save application context to URL for persistence
-                                        save_session_to_url()
-                                        st.rerun()
-                                    else:
-                                        st.warning(f"⚠️ Backend update failed: {response.text}")
-                                        st.info("💡 Your changes have been saved locally. You can try again later when the backend is available.")
-                                        st.session_state.form_edit_mode = False
-                                        save_session_to_url()
-                                        st.rerun()
-                                except Exception as e:
-                                    st.warning(f"⚠️ Error communicating with backend: {str(e)}")
-                                    st.info("💡 Your changes have been saved locally. You can try again later when the backend is available.")
-                                    st.session_state.form_edit_mode = False
-                                    save_session_to_url()
-                                    st.rerun()
+                            else:
+                                st.error("❌ Failed to update application in backend. Please try again.")
                         else:
                             # Handle new application submission
                             if submit_application(applicant_data):
@@ -1158,7 +955,53 @@ def main():
             # Show uploaded documents summary after successful upload
             if st.session_state.documents_uploaded:
                 with st.expander("📄 View Uploaded Documents", expanded=True):
-                    if hasattr(st.session_state, 'uploaded_docs_summary'):
+                    if 'uploaded_documents' in st.session_state and st.session_state.uploaded_documents:
+                        st.subheader(f"📄 {len(st.session_state.uploaded_documents)} Documents Uploaded")
+                        
+                        # Display each document with details
+                        for i, doc in enumerate(st.session_state.uploaded_documents):
+                            with st.container():
+                                col1, col2 = st.columns([3, 1])
+                                with col1:
+                                    doc_type_display = {
+                                        "emirates_id": "🆔 Emirates ID",
+                                        "bank_statement": "🏦 Bank Statement",
+                                        "credit_report": "📊 Credit Report",
+                                        "resume": "📄 Resume/CV",
+                                        "assets_liabilities": "💰 Assets & Liabilities",
+                                        "salary_certificate": "💼 Salary Certificate",
+                                        "trade_license": "🏢 Trade License",
+                                        "passport": "📘 Passport",
+                                        "visa": "🛂 Visa",
+                                        "utility_bill": "⚡ Utility Bill",
+                                        "rental_agreement": "🏠 Rental Agreement",
+                                        "family_book": "👨‍👩‍👧‍👦 Family Book",
+                                        "medical_report": "🏥 Medical Report",
+                                        "insurance_policy": "🛡️ Insurance Policy",
+                                        "general": "📎 General Document",
+                                        "other": "📎 Other Document"
+                                    }.get(doc.get("type", "general"), "📎 Document")
+                                    
+                                    st.markdown(f"**{doc_type_display}**: {doc.get('filename', 'Unknown')}")
+                                    
+                                    # Show additional details if available
+                                    details = []
+                                    if doc.get("size"):
+                                        size_mb = doc.get("size", 0) / (1024 * 1024)
+                                        details.append(f"Size: {size_mb:.2f} MB")
+                                    if doc.get("uploaded_at"):
+                                        details.append(f"Uploaded: {doc.get('uploaded_at', '').split('T')[0]}")
+                                    
+                                    if details:
+                                        st.caption(" | ".join(details))
+                                
+                                with col2:
+                                    st.success("✅ Uploaded")
+                            
+                            if i < len(st.session_state.uploaded_documents) - 1:
+                                st.divider()
+                    
+                    elif hasattr(st.session_state, 'uploaded_docs_summary'):
                         st.text(st.session_state.uploaded_docs_summary)
                     else:
                         st.info("Document summary will appear here after upload.")

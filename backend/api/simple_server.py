@@ -212,6 +212,75 @@ async def submit_application(
         logger.error(f"Application submission failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.put("/applications/{application_id}/update")
+async def update_application(
+    application_id: int,
+    applicant_data: Dict[str, Any],
+    current_user: Optional[Dict[str, Any]] = Depends(get_current_user)
+):
+    """Update an existing application"""
+    try:
+        logger.info(f"Updating application {application_id} with data: {applicant_data}")
+        
+        # Check if this is an authenticated user's application
+        if current_user:
+            # Authenticated user - update in database
+            with get_db_context() as db:
+                # Get user applications
+                user_applications = get_user_applications(db, current_user["user_id"])
+                application = None
+                for app in user_applications:
+                    if app.id == application_id:
+                        application = app
+                        break
+                
+                if not application:
+                    raise HTTPException(status_code=404, detail=f"Application {application_id} not found for authenticated user {current_user['user_id']}")
+                
+                # Update application data
+                application.application_type = applicant_data.get("application_type", application.application_type)
+                application.applicant_data = json.dumps(applicant_data)
+                
+                # Save to database
+                db.commit()
+                
+                # Also update processing cache for compatibility
+                if application_id in processing_status_cache:
+                    processing_status_cache[application_id]["last_updated"] = datetime.now().isoformat()
+                
+                logger.info(f"Updated authenticated application {application_id} for user {current_user['user_id']}")
+                
+                return {
+                    "application_id": application_id,
+                    "status": "updated",
+                    "message": "Application updated successfully.",
+                    "authenticated": True
+                }
+        else:
+            # Anonymous user - update in JSON storage
+            if application_id not in applications_db:
+                raise HTTPException(status_code=404, detail="Application not found")
+            
+            # Update application data
+            applications_db[application_id]["applicant_data"] = applicant_data
+            applications_db[application_id]["last_updated"] = datetime.now().isoformat()
+            
+            # Save data to persistence
+            save_data()
+            
+            logger.info(f"Updated anonymous application {application_id}")
+            
+            return {
+                "application_id": application_id,
+                "status": "updated",
+                "message": "Application updated successfully.",
+                "authenticated": False
+            }
+    
+    except Exception as e:
+        logger.error(f"Application update failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/applications/{application_id}/documents/upload")
 async def upload_documents(
     application_id: int,
@@ -360,93 +429,6 @@ async def upload_documents(
 
     except Exception as e:
         logger.error(f"Document upload failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.put("/applications/{application_id}/update")
-async def update_application(
-    application_id: int,
-    applicant_data: Dict[str, Any],
-    current_user: Optional[Dict[str, Any]] = Depends(get_current_user)
-):
-    """Update an existing application with new applicant data"""
-    try:
-        # Check if this is an authenticated user's application
-        if current_user and application_id in processing_status_cache and processing_status_cache[application_id].get("user_id"):
-            # Authenticated user - update in database
-            with get_db_context() as db:
-                user_applications = get_user_applications(db, current_user["user_id"])
-                application = None
-                for app in user_applications:
-                    if app.id == application_id:
-                        application = app
-                        break
-                
-                if not application:
-                    raise HTTPException(status_code=404, detail=f"Application {application_id} not found for user {current_user['user_id']}")
-                
-                # Update application data in database
-                application.applicant_data = json.dumps(applicant_data)
-                application.updated_at = datetime.now()
-                db.commit()
-                
-                logger.info(f"Updated authenticated application {application_id} for user {current_user['user_id']}")
-                
-                return {
-                    "application_id": application_id,
-                    "status": "updated",
-                    "message": "Application updated successfully.",
-                    "authenticated": True
-                }
-                
-        elif current_user:
-            # Authenticated user but application not in cache - check database
-            with get_db_context() as db:
-                user_applications = get_user_applications(db, current_user["user_id"])
-                application = None
-                for app in user_applications:
-                    if app.id == application_id:
-                        application = app
-                        break
-                
-                if not application:
-                    raise HTTPException(status_code=404, detail=f"Application {application_id} not found for user {current_user['user_id']}")
-                
-                # Update application data in database
-                application.applicant_data = json.dumps(applicant_data)
-                application.updated_at = datetime.now()
-                db.commit()
-                
-                logger.info(f"Updated authenticated application {application_id} for user {current_user['user_id']}")
-                
-                return {
-                    "application_id": application_id,
-                    "status": "updated",
-                    "message": "Application updated successfully.",
-                    "authenticated": True
-                }
-        else:
-            # Anonymous user - check JSON storage
-            if application_id not in applications_db:
-                raise HTTPException(status_code=404, detail="Application not found")
-            
-            # Update application data
-            applications_db[application_id]["applicant_data"] = applicant_data
-            applications_db[application_id]["updated_at"] = datetime.now().isoformat()
-            
-            # Save data to persistence
-            save_data()
-            
-            logger.info(f"Updated anonymous application {application_id}")
-            
-            return {
-                "application_id": application_id,
-                "status": "updated",
-                "message": "Application updated successfully.",
-                "authenticated": False
-            }
-    
-    except Exception as e:
-        logger.error(f"Application update failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/applications/{application_id}/process")

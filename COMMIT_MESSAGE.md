@@ -1,67 +1,34 @@
-# Initial commit: Complete AI Social Support Application MVP
+# feat: Enhanced Document & Application Persistence
 
-## 🎯 Project Overview
-Fully functional AI Social Support Application System with local LLM integration and real-time chat assistance.
+## 🔄 Application and Document Persistence Improvements
 
-## ✅ Implemented Features
+### Key Features
+- **💾 Document Persistence Across Page Reloads**
+  - Complete document list persistence in session state
+  - Automatic document retrieval from backend on page refresh
+  - Enhanced document display with metadata and organization
 
-### Core Application System
-- Complete application form processing with validation
-- Multi-file document upload with type classification
-- Real-time status tracking and progress monitoring
-- Data persistence surviving server restarts
-- Comprehensive error handling and user-friendly messages
+- **🔄 Application Form Edit Persistence**
+  - New backend API endpoint for updating application data
+  - Form edits now saved to both session state and backend
+  - Seamless persistence of form changes across page refreshes
+  - Support for both authenticated and anonymous users
 
-### AI Chat Assistant
-- Instant responses for greetings and common questions (<0.03s)
-- Intelligent FAQ responses using qwen2:1.5b LLM (5-6s)
-- Hybrid response system balancing speed and intelligence
-- Context-aware assistance for application-specific queries
-- Optimized Ollama integration with local privacy
+### Technical Improvements
+- **Backend API**: New PUT endpoint for application updates
+- **Frontend Integration**: Complete update workflow with backend sync
+- **Session Management**: Better form and document data persistence
+- **Data Integrity**: Consistent application state between frontend and backend
 
-### Performance Optimizations
-- Lightweight qwen2:1.5b model (934MB) optimized for speed
-- Hybrid instant/LLM response strategy
-- Optimized LLM parameters (temp: 0.2, top_p: 0.7, top_k: 10)
-- Efficient file-based JSON persistence
-- Resource-efficient architecture (~4GB RAM usage)
+### Documentation Updates
+- Updated CHANGELOG.md to versions 2.5.0 and 2.6.0
+- Enhanced README.md with session continuity features
+- Added comprehensive error handling for update failures
 
-### Technical Architecture
-- **Frontend**: Streamlit UI (port 8501)
-- **Main API**: FastAPI server (port 8000)
-- **Chat API**: Dedicated chat service (port 8001)
-- **LLM Backend**: Ollama with qwen2:1.5b model (port 11434)
-- **Data Storage**: JSON-based persistence in data/temp/
-
-## 📊 Performance Metrics
-- Simple greetings: <0.03s (instant)
-- Complex FAQ: 5-6s
-- Form submission: <1s
-- Document upload: 1-3s
-- Memory usage: ~4GB
-- 100% local processing (no external APIs)
-
-## 📚 Documentation
-- Comprehensive README.md with setup instructions
-- QUICK_START.md for 5-minute deployment
-- TECHNICAL_GUIDE.md with detailed architecture
-- Complete CHANGELOG.md with development history
-- PROJECT_STATUS.md with 93% completion metrics
-
-## 🔧 System Status
-- **Status**: Fully functional MVP ready for production
-- **Testing**: All core features tested and working
-- **Dependencies**: Updated requirements.txt with verified versions
-- **Configuration**: Optimized .env for current setup
-- **Platform**: Tested on Python 3.13.1, macOS Darwin 24.6.0
-
-## 🚀 Ready For
-- Production deployment
-- Demo presentations
-- User acceptance testing
-- Further development and enhancement
-- Enterprise scaling
-
-🤖 Generated with [Claude Code](https://claude.ai/code)
+## 🚀 User Experience Enhancements
+- No data loss on page refresh or navigation
+- Seamless experience with persistent document and application state
+- Better feedback on successful updates
+- Improved error handling for failed operations
 
 Co-Authored-By: Claude <noreply@anthropic.com>
