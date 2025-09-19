@@ -87,6 +87,10 @@ def save_session_to_url():
     if hasattr(st.session_state, 'application_id') and st.session_state.application_id:
         if st.query_params.get("application_id") != str(st.session_state.application_id):
             st.query_params["application_id"] = str(st.session_state.application_id)
+            
+        # Also mark application as submitted if we have an ID
+        if hasattr(st.session_state, 'application_submitted'):
+            st.session_state.application_submitted = True
 
 def init_session_state():
     """Initialize session state for authentication and application context"""

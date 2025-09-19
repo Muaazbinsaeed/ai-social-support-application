@@ -200,7 +200,7 @@ def load_application_form_data():
     try:
         # Get application details from backend
         details = get_application_details()
-
+        
         if "error" not in details:
             # Extract applicant data from backend response
             applicant_info = details.get("applicant", {})
@@ -226,6 +226,19 @@ def load_application_form_data():
                 raw_data = details["applicant_data"]
                 if isinstance(raw_data, dict):
                     applicant_data = raw_data
+            
+            # For anonymous users, check directly in the applications_db
+            if not applicant_data and details.get("application", {}).get("id"):
+                try:
+                    app_id = details["application"]["id"]
+                    # Try to get directly from backend
+                    response = requests.get(f"{API_BASE_URL}/applications/{app_id}/details")
+                    if response.status_code == 200:
+                        app_data = response.json()
+                        if app_data.get("applicant_data"):
+                            applicant_data = app_data["applicant_data"]
+                except:
+                    pass
 
             # Restore form data to session state from backend
             restored_data = {
@@ -245,8 +258,14 @@ def load_application_form_data():
                 "has_existing_support": applicant_data.get("has_existing_support", False)
             }
 
+            # Log successful data restoration
+            print(f"Restored form data for application {st.session_state.application_id}: {restored_data}")
+            
             # Update session state with backend data
             st.session_state.form_data = restored_data
+            
+            # Save to session state and URL for persistence
+            save_session_to_url()
 
             return True
         else:
@@ -689,10 +708,30 @@ def main():
 
                         if st.session_state.form_edit_mode:
                             # Handle application update
-                            st.session_state.form_edit_mode = False
-                            st.success("✅ Application updated successfully!")
-                            st.info("💡 Your changes have been saved. Note: You may need to re-upload documents if there were significant changes.")
-                            st.rerun()
+                            try:
+                                # Update application data on backend
+                                headers = get_auth_headers()
+                                response = requests.put(
+                                    f"{API_BASE_URL}/applications/{st.session_state.application_id}/update",
+                                    json=applicant_data,
+                                    headers=headers
+                                )
+                                
+                                if response.status_code == 200:
+                                    result = response.json()
+                                    st.session_state.form_edit_mode = False
+                                    st.success("✅ Application updated successfully!")
+                                    st.info("💡 Your changes have been saved. Note: You may need to re-upload documents if there were significant changes.")
+                                    # Save updated form data to session state
+                                    st.session_state.form_data = form_data
+                                    # Save application context to URL for persistence
+                                    save_session_to_url()
+                                    st.rerun()
+                                else:
+                                    st.error(f"Failed to update application: {response.text}")
+                            except Exception as e:
+                                st.error(f"Error updating application: {str(e)}")
+                                st.warning("Your changes were saved locally but not on the server. Please try again.")
                         else:
                             # Handle new application submission
                             if submit_application(applicant_data):
